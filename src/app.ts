@@ -21,7 +21,7 @@ app.use(
 app.use('/api', router);
 
 app.get('/', (req: Request, res: Response) => {
-  res.status(200).json({ message: 'Welcome to Blog Server' });
+  res.status(200).json({ message: 'Welcome to Server' });
 });
 // app.use(globalErrorHandler);
 // app.use(notFound);
