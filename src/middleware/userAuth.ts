@@ -1,74 +1,82 @@
-import { NextFunction, Request, Response } from 'express';
-import httpStatus from 'http-status';
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import AppError from '../errors/AppError';
-import catchAsync from '../utils/catchAsync';
-
-import mongoose from 'mongoose';
-
-import { TUserRole } from '../interface/UserInterface'; 
-import { UserModel } from '../model/UserModel';
-import { ROLE } from '../constance/Role';
+import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import AppError from "../errors/AppError";
+import catchAsync from "../utils/catchAsync";
+import mongoose from "mongoose";
+import { TUserRole } from "../interface/UserInterface";
+import { UserModel } from "../model/UserModel";
+import { ROLE } from "../constance/Role";
+import config from "../config";
 
 const userAuth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    
-    const token = req.headers.authorization?.split(' ')[1]; // Bearer <token>
+    // ✅ Token check (either from Bearer header OR cookie)
+    const bearerToken = req.headers.authorization?.split(" ")[1];
+    const cookieToken = req.cookies?.token;
+    const token = bearerToken || cookieToken;
 
     if (!token) {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
-        'Token is missing or UnAuthorized Access!!',
+        "Token missing or unauthorized access!"
       );
     }
 
-    // checking if the token is missing
-    if (!token) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+    // ✅ Verify token
+    let decoded: JwtPayload;
+    try {
+      decoded = jwt.verify(
+        token,
+        config.jwt_access_secret_key as string
+      ) as JwtPayload;
+    } catch (err) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired token!");
     }
 
-    // checking if the given token is valid
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET_TOKEN as string,
-    ) as JwtPayload;
-
-    if (!decoded) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+    if (!decoded?.userId) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token payload!");
     }
 
     const { role, userId } = decoded;
 
+    // ✅ Convert string ID to ObjectId safely
     const objectIdUserId = new mongoose.Types.ObjectId(userId);
 
-    // checking if the user is exist
+    // ✅ Check user existence
     const user = await UserModel.findById(objectIdUserId);
 
     if (!user) {
-      throw new AppError(httpStatus.NOT_FOUND, 'You are not authorized!');
+      throw new AppError(httpStatus.NOT_FOUND, "User not found!");
     }
-    if (user?.status === "deleted" || user?.status === "blocked") {
-      throw new AppError(httpStatus.UNAUTHORIZED, `Access denied! This account is currently ${user.status === "deleted" ? "deleted" : "blocked"}.`);
-    }
-    
-    if (requiredRoles && !requiredRoles.includes(role)) {
+
+    // ✅ Check account status
+    if (user.status === "deleted" || user.status === "blocked") {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
-        'You are  unAuthorized  Person!',
+        `Access denied! This account is currently ${
+          user.status === "deleted" ? "deleted" : "blocked"
+        }.`
       );
     }
 
-    // req.user = decoded as JwtPayload;
+    // ✅ Role authorization check
+    if (requiredRoles.length > 0 && !requiredRoles.includes(role)) {
+      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized!");
+    }
+
+    // ✅ Attach user info to request (safe format)
     req.user = { ...decoded, userId: objectIdUserId };
+
     next();
   });
 };
 
-// Aliaes for different roles
+// ✅ Role-based access
 const adminAuth = userAuth(ROLE.admin);
 const userOnlyAuth = userAuth(ROLE.user);
 
-// Auth Middleware for all authenticated users (admin, user)
+// ✅ Auth for any logged-in user (admin or user)
 const anyAuth = userAuth(ROLE.admin, ROLE.user);
 
 export { userAuth, adminAuth, userOnlyAuth, anyAuth };

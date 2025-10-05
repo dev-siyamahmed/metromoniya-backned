@@ -17,7 +17,7 @@ import config from '../config';
     console.log("smtp " , config.smtp_user, config.smtp_pass);
 
 
-const sendOtpEmail = async (email: string, otp: string) => {
+const sendOtpEmail = async (userId: string, email: string, otp: string) => {
   const htmlContent = `
     <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
       <div style="max-width: 500px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);">
@@ -46,22 +46,23 @@ const sendOtpEmail = async (email: string, otp: string) => {
 };
 
 
-const generateOtp = async (email: string) => {
+const generateOtp = async (userId: string, email: string) => {
   const otp = otpGenerator.generate(6, {
     digits: true,                  // Only digits
-    upperCaseAlphabets: false,     // No uppercase letters
+    upperCaseAlphabets: true,     // No uppercase letters
     lowerCaseAlphabets: false,     // No lowercase letters
     specialChars: false            // No special characters
   });
 
   const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes expiration
 
-  await OtpModel.create({ email, otp, expiresAt });
-  await sendOtpEmail(email, otp);
+  await OtpModel.create({ userId, email, otp, expiresAt });
+  await sendOtpEmail(userId, email, otp);
+  return otp;
 };
 
-const verifyOtp = async (email: string, otp: string) => {
-  const otpDoc = await OtpModel.findOne({ email, otp });
+const verifyOtp = async (userId: string, otp: string) => {
+  const otpDoc = await OtpModel.findOne({ userId, otp });
   if (!otpDoc) {
     throw new Error('Invalid OTP');
   }

@@ -1,15 +1,18 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
-interface IOtp extends Document {
+export interface IOtp extends Document {
+  userId: Types.ObjectId;
   email: string;
-  otp: number;
+  otp: string; // OTP as string
   expiresAt: Date;
 }
 
 const otpSchema = new Schema<IOtp>({
+  userId: { type: Schema.Types.ObjectId, required: true, ref: 'User' }, // ✅ fix here
   email: { type: String, required: true },
-  otp: { type: Number, required: true },
-  expiresAt: { type: Date, required: true, index: { expires: '2m' } }, // OTP expires in 2 minutes
+  otp: { type: String, required: true },
+  expiresAt: { type: Date, required: true, index: { expires: '2m' } },
 });
+
 
 export const OtpModel = mongoose.model<IOtp>('Otp', otpSchema);
