@@ -5,6 +5,7 @@ import { OtpService } from "../../utils/OtpService";
 import { TUser } from "../../interface/UserInterface";
 import { JWTCreateToken } from "../../utils/JWTGenarateToken";
 import config from "../../config";
+import bcrypt from 'bcrypt';
 
 const createUserService = async (body: TUser) => {
   const { email } = body;
@@ -74,7 +75,40 @@ const otpVerifyService = async (userId: string, otp: number) => {
     return {user, token };
 }
 
+const loginUserService = async (email: string, password: string) => {
+   const user = await UserModel.findOne({ email }).select("+password");
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+  // const isPasswordValid = await user.validatePassword(password);
+  const isPasswordValid = await bcrypt.compare(password, user.password as string);
+  
+  if (!isPasswordValid) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid password");
+  }
+
+  if (!user.verified) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not verified");
+  }
+  if (user?.status === "deleted" || user?.status === "blocked") {
+        throw new AppError(httpStatus.UNAUTHORIZED, `Access denied! This account is currently ${user.status === "deleted" ? "deleted" : "blocked"}.`);  
+    } 
+
+  const jwtPayload = {
+        userId: user._id as string,
+    };
+
+    // Using createToken with only userId (role will be checked from DB)
+    const token = JWTCreateToken(
+        jwtPayload,
+        config.jwt_access_secret_key as string,
+        config.jwt_access_expires_in as string,
+    );
+    return {user, token };
+}
+
 export const AuthService = {
   createUserService,
-  otpVerifyService
+  otpVerifyService,
+  loginUserService
 };

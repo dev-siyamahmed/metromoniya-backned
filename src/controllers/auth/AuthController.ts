@@ -23,7 +23,7 @@ const createUser = catchAsync(async (req, res) => {
 const otpVerify = catchAsync(async (req, res) => {
   const { otp, userId } = req.body;
 
-  const {user, token } = await AuthService.otpVerifyService(userId, otp);
+  const {token } = await AuthService.otpVerifyService(userId, otp);
 
   res.cookie("token", token, {
     httpOnly: true,         
@@ -38,12 +38,34 @@ const otpVerify = catchAsync(async (req, res) => {
         message: "User verified successfully",
         data: {
             token,
-             user
+        } 
+    });
+});
+
+const loginUser = catchAsync(async (req, res) => {
+  const { email, password } = req.body;
+  
+  const { token } = await AuthService.loginUserService(email, password);  
+
+  res.cookie("token", token, {
+    httpOnly: true,         
+    secure: config.node_env === "production",
+    sameSite: "strict",   
+    maxAge: 24 * 60 * 60 * 1000, 
+  });
+
+  sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User logged in successfully",
+        data: {
+            token
         } 
     });
 });
 
 export const AuthController = {
   createUser,
-  otpVerify 
+  otpVerify,
+  loginUser
 };

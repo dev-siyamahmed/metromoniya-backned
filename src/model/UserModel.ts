@@ -61,16 +61,17 @@ UserSchema.pre('save', async function (next) {
 });
 
 // Password validation method
-UserSchema.methods.validatePassword = async function (password: string): Promise<boolean> {
-    if (!this.password) return false;
-    return bcrypt.compare(password, this.password);
-};
-
+// UserSchema.methods.validatePassword = async function (password: string): Promise<boolean> {
+//     if (!this.password) return false;
+//     return bcrypt.compare(password, this.password);
+// };
 
 // Static method to find by email
 UserSchema.statics.findByEmail = async function (email: string): Promise<TUser | null> {
     return this.findOne({ email });
 };
+
+
 
 // Create models with read/write separation for performance optimization
 export const UserModel = model<TUser>('User', UserSchema);

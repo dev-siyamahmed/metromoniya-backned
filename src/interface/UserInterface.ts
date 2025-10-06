@@ -46,6 +46,10 @@ export interface TUser extends Document {
   updatedAt: Date;
 }
 
+// export interface TUserModel {
+//   validatePassword(password: string): Promise<boolean>;
+// }
+
 // export interface TUserModel extends Model<TUser> {
 //   findByEmail: (email: string) => Promise<TUser | null>;
 // }
