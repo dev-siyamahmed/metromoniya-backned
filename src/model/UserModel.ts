@@ -9,6 +9,7 @@ const UserSchema: Schema<TUser> = new Schema(
     email: { type: String, required: true, unique: true, trim: true },
     phoneNumber: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
+    passwordChangedAt: { type: Date, default: null },
     profilePicture: { type: String, default: null },
 
     // Account Type
@@ -56,6 +57,7 @@ const UserSchema: Schema<TUser> = new Schema(
 UserSchema.pre('save', async function (next) {
     if (this.isModified('password') && this.password) {
         this.password = await bcrypt.hash(this.password, 10);
+        this.passwordChangedAt = new Date();
     }
     next();
 });

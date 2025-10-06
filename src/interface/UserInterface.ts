@@ -9,6 +9,7 @@ export interface TUser extends Document {
   email: string;
   phoneNumber: string;
   password: string;
+  passwordChangedAt?: Date;
   role: TUserRole;
   profilePicture?: string | '';
   status: 'active' | 'inactive' | 'blocked' | 'deleted';

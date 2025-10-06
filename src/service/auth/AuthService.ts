@@ -96,6 +96,7 @@ const loginUserService = async (email: string, password: string) => {
 
   const jwtPayload = {
         userId: user._id as string,
+        passwordChangedAt: user.passwordChangedAt?.getTime() || 0
     };
 
     // Using createToken with only userId (role will be checked from DB)
@@ -107,8 +108,42 @@ const loginUserService = async (email: string, password: string) => {
     return {user, token };
 }
 
+const forgetPasswordService = async (email: string) => {
+  const user = await UserModel.findOne({ email });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  user.passwordChangedAt = new Date();
+  await user.save();
+  // Generate OTP
+  const otp = await OtpService.generateOtp(user._id as string, user.email as string);
+  console.log("otp" , otp);
+  return { userId: user._id, otp };
+}
+
+ const verifyResetOtpService = async (userId: string, otp: string) => {
+  await OtpService.verifyOtp(userId, otp);
+  return true;
+};
+
+const resetPasswordService = async (userId: string, newPassword: string) => {
+  const user = await UserModel.findById(userId).select("+password");
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  user.password = newPassword;
+  user.passwordChangedAt = new Date();
+  await user.save();
+  return true;
+};
+
 export const AuthService = {
   createUserService,
   otpVerifyService,
-  loginUserService
+  loginUserService,
+  forgetPasswordService,
+  verifyResetOtpService,
+  resetPasswordService
 };

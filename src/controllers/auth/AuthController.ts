@@ -64,8 +64,54 @@ const loginUser = catchAsync(async (req, res) => {
     });
 });
 
+const forgetPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  const { userId, otp } = await AuthService.forgetPasswordService(email);
+  sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Password reset email sent successfully",
+        data: {
+            userId,
+            otp
+        }
+    });
+});
+
+const verifyResetOtp = catchAsync(async (req, res) => {
+  const { userId, otp } = req.body;
+  const isVerified = await AuthService.verifyResetOtpService(userId, otp);
+  sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "OTP verified successfully",
+        data: {
+            isVerified
+        }
+    });
+});
+
+
+const resetPassword = catchAsync(async (req, res) => {
+  const { userId, newPassword } = req.body;
+  const isReset = await AuthService.resetPasswordService(userId, newPassword);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Password reset successfully",
+    data: {
+      isReset
+    }
+  });
+});
+
+
 export const AuthController = {
   createUser,
   otpVerify,
-  loginUser
+  loginUser,
+  forgetPassword,
+  verifyResetOtp,
+  resetPassword
 };

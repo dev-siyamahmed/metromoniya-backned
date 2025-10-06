@@ -45,7 +45,15 @@ const userAuth = (...requiredRoles: TUserRole[]) => {
 
     // ✅ Check user existence
     const user = await UserModel.findById(objectIdUserId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found!");
+    }
 
+ if (user.passwordChangedAt) {
+    if (decoded.iat && decoded.iat < user.passwordChangedAt.getTime()) {
+      throw new Error("Token invalidated. Please login again.");
+    }
+  }
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "User not found!");
     }
